@@ -2,9 +2,8 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.express as px
-from data import countries_df
+from data import countries_df, totals_df
 from builders import make_table
-
 
 stylesheets = [
     "https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css",
@@ -16,20 +15,34 @@ app = dash.Dash(__name__, external_stylesheets=stylesheets)
 bubble_map = px.scatter_geo(
     countries_df,
     size="Confirmed",
-    size_max=40,
-    projection="natural earth",
+    hover_name="Country_Region",
+    color="Confirmed",
     locations="Country_Region",
     locationmode="country names",
-    color="Confirmed",
-    hover_name="Country_Region",
-    hover_data={
-        "Country_Region": False,
-        "Confirmed": ":,3f",
-        "Recovered": ":,3f",
-        "Deaths": ":,3f",
-    },
+    size_max=40,
+    title="Confirmed By Country",
     template="plotly_dark",
+    color_continuous_scale=px.colors.sequential.Oryel,
+    projection="natural earth",
+    hover_data={
+        "Confirmed": ":,",
+        "Deaths": ":,",
+        "Recovered": ":,",
+        "Country_Region": False,
+    },
 )
+bubble_map.update_layout(margin=dict(l=0, r=0, t=50, b=0))
+
+bars_graph = px.bar(
+    totals_df,
+    x="condition",
+    hover_data={"count": ":,"},
+    y="count",
+    template="plotly_dark",
+    title="Total Global Cases",
+)
+
+bars_graph.update_layout(xaxis=dict(title="Condition"), yaxis=dict(title="Count"))
 
 app.layout = html.Div(
     style={
@@ -49,11 +62,13 @@ app.layout = html.Div(
                 html.Div(children=[make_table(countries_df)]),
             ]
         ),
+        html.Div(
+            children=[
+                html.Div(children=[dcc.Graph(figure=bars_graph)]),
+            ]
+        ),
     ],
 )
-
-
-# fig.show()
 
 
 if __name__ == "__main__":
