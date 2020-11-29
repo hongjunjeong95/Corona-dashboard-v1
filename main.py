@@ -3,7 +3,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.express as px
 from dash.dependencies import Input, Output
-from data import countries_df, totals_df
+from data import countries_df, totals_df, dropdown_options, make_global_df
 from builders import make_table
 
 stylesheets = [
@@ -87,8 +87,14 @@ app.layout = html.Div(
                 html.Div(children=[dcc.Graph(figure=bars_graph)]),
                 html.Div(
                     children=[
-                        dcc.Input(placeholder="What is your name?", id="hello-input"),
-                        html.H2(children="Hello anonymous", id="hello-output"),
+                        dcc.Dropdown(
+                            id="country",
+                            options=[
+                                {"label": country, "value": country}
+                                for country in dropdown_options
+                            ],
+                        ),
+                        dcc.Graph(id="country_graph"),
                     ]
                 ),
             ],
@@ -97,12 +103,35 @@ app.layout = html.Div(
 )
 
 
-@app.callback(Output("hello-output", "children"), [Input("hello-input", "value")])
+@app.callback(Output("country_graph", "figure"), [Input("country", "value")])
 def update_hello(value):
-    if value is None:
-        return "Hello Anonymous"
-    else:
-        return f"Hello {value}"
+    df = make_global_df()
+    fig = px.line(
+        df,
+        x="date",
+        y=["confirmed", "deaths", "recovered"],
+        template="plotly_dark",
+        labels={"value": "Cases", "variable": "Condition", "date": "Date"},
+        hover_data={"value": ":,", "variable": False, "date": False},
+    )
+    fig.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector=dict(
+            buttons=list(
+                [
+                    dict(count=1, label="1m", step="month", stepmode="backward"),
+                    dict(count=6, label="6m", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(count=1, label="1y", step="year", stepmode="backward"),
+                    dict(step="all"),
+                ]
+            )
+        ),
+    )
+    fig["data"][0]["line"]["color"] = "#e74c3c"
+    fig["data"][1]["line"]["color"] = "#8e44ad"
+    fig["data"][2]["line"]["color"] = "#27ae60"
+    return fig
 
 
 if __name__ == "__main__":
